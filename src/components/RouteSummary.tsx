@@ -19,7 +19,6 @@ export const RouteSummary: React.FC<Props> = ({ route }) => {
         totalDistanceMeters,
         edges,
         fullyAccessible,
-        accessibleUntilSeq,
         firstBlockedReason,
         requestedMobilityType,
     } = route;
@@ -53,10 +52,9 @@ export const RouteSummary: React.FC<Props> = ({ route }) => {
                         </span>
                     )
                 ) : (
-                    <span style={{ color: "#e53e3e" }}>
-                        ❌ {requestedMobilityType} 기준으로 전체 이동이 불가능합니다.
-                        {firstBlockedReason && ` (${firstBlockedReason})`}
-                        {accessibleUntilSeq && ` — ${accessibleUntilSeq}번째 구간까지 가능`}
+                    <span style={{ color: "#dd6b20" }}>
+                        ⚠ {requestedMobilityType} 기준 제약/우회가 있을 수 있는 경로입니다.
+                        {firstBlockedReason && ` (주의: ${firstBlockedReason})`}
                     </span>
                 )}
             </div>

@@ -3,6 +3,21 @@ import React, { useEffect, useMemo, useRef } from "react";
 import type { MobilityType, LatLng, RouteDetailResult } from "../types";
 import { getObstacles } from "../services/mapService";
 
+const OBSTACLE_TYPE_LABEL: Record<string, string> = {
+    CONSTRUCTION: "공사중",
+    TREE: "나무",
+    ROCK: "돌",
+    FURNITURE: "가구",
+    SLOPE: "경사로",
+    OTHER_OBSTACLE: "기타 장애물",
+
+    STAIRS: "계단",
+    SIDEWALK_BLOCKED: "보도 통제",
+    ROAD_BLOCKED: "도로 통제",
+    ELEVATOR_OUTAGE: "엘리베이터 고장",
+};
+
+
 declare global {
     interface Window {
         kakao?: any;
@@ -75,6 +90,7 @@ export const KakaoMap: React.FC<Props> = ({
     const markersRef = useRef<any[]>([]);
     const polylinesRef = useRef<any[]>([]);
     const obstaclePolygonsRef = useRef<any[]>([]);
+    const obstacleInfoRef = useRef<any>(null);
 
     const pickModeRef = useRef<PickMode>(pickMode);
     useEffect(() => {
@@ -144,9 +160,32 @@ export const KakaoMap: React.FC<Props> = ({
                     fillOpacity: 0.22,
                 });
 
+                const props = f.properties ?? {};
+                const rawType = props.type as string | undefined;
+                const obstacleTypeLabel = (rawType && OBSTACLE_TYPE_LABEL[rawType]) ?? "장애물";
+                const createdAtRaw = props.createdAt ?? null;
+                const createdAtText = createdAtRaw
+                    ? new Date(createdAtRaw).toLocaleString("ko-KR")
+                    : "N/A";
+
+                kakao.maps.event.addListener(polygon, "click", (mouseEvent: any) => {
+                    const iw = obstacleInfoRef.current;
+                    if (!iw) return;
+
+                    iw.setContent(`
+                      <div style="padding:10px; font-size:12px; line-height:1.4;">
+                        <div style="font-weight:700; margin-bottom:6px;">${obstacleTypeLabel}</div>
+                        <div><b>등록</b>: ${createdAtText}</div>
+                      </div>
+                    `);
+                    iw.setPosition(mouseEvent.latLng);
+                    iw.open(map);
+                });
+
                 polygon.setMap(map);
                 obstaclePolygonsRef.current.push(polygon);
             });
+
 
             lastFetchedBoundsRef.current = bbox;
         } catch (e) {
@@ -177,6 +216,9 @@ export const KakaoMap: React.FC<Props> = ({
             });
 
             mapInstanceRef.current = map;
+
+            // 장애물 정보 클릭 설정
+            obstacleInfoRef.current = new kakao.maps.InfoWindow({ removable: true });
 
             // 클릭해서 출발/도착 선택
             kakao.maps.event.addListener(map, "click", (mouseEvent: any) => {
@@ -262,18 +304,19 @@ export const KakaoMap: React.FC<Props> = ({
             return new kakao.maps.LatLng(lat, lng);
         });
 
-        const hasStairs = route.edges.some((e) => e.stairs);
-        const hasBlocked = !route.fullyAccessible;
-
         const isBarrierFree =
             route.requestedMobilityType === "WHEELCHAIR" ||
             route.requestedMobilityType === "STROLLER" ||
             route.requestedMobilityType === "ELDERLY";
 
+
+        const hasWarning = !route.fullyAccessible; // 의미를 "주의"로 사용
+        const hasStairs = route.edges.some((e) => e.stairs);
+
         const strokeColor = isBarrierFree
-            ? hasBlocked
-                ? "#e53e3e"
-                : "#2f855a"
+            ? hasWarning
+                ? "#dd6b20"  // 🟠 "주의/우회" (기존 빨강 대신)
+                : "#2f855a"  // 🟢
             : hasStairs
                 ? "#dd6b20"
                 : "#3182ce";
