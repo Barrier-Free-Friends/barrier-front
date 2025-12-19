@@ -1,7 +1,7 @@
 // src/components/KakaoMap.tsx
 import React, { useEffect, useMemo, useRef } from "react";
 import type { MobilityType, LatLng, RouteDetailResult } from "../types";
-import { getObstacles } from "../services/mapService";
+import { getObstacles, getUserBadgeUrl } from "../services/mapService";
 
 const OBSTACLE_TYPE_LABEL: Record<string, string> = {
     CONSTRUCTION: "공사중",
@@ -77,6 +77,22 @@ function isContained(inner: any, outer: any) {
     );
 }
 
+function renderObstacleInfoHtml(typeLabel: string, createdAtText: string, badgeUrl: string | null) {
+    const img = badgeUrl
+        ? `<img src="${badgeUrl}" alt="badge" style="width:28px;height:28px;border-radius:999px;object-fit:cover;border:1px solid #eee;" />`
+        : `<div style="width:28px;height:28px;border-radius:999px;background:#f3f3f3;border:1px solid #eee;"></div>`;
+
+    return `
+    <div style="padding:10px; font-size:12px; line-height:1.4; min-width:180px;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+        ${img}
+        <div style="font-weight:700;">${typeLabel}</div>
+      </div>
+      <div><b>등록</b>: ${createdAtText}</div>
+    </div>
+  `;
+}
+
 export const KakaoMap: React.FC<Props> = ({
                                               start,
                                               end,
@@ -91,6 +107,7 @@ export const KakaoMap: React.FC<Props> = ({
     const polylinesRef = useRef<any[]>([]);
     const obstaclePolygonsRef = useRef<any[]>([]);
     const obstacleInfoRef = useRef<any>(null);
+    const badgeUrlCacheRef = useRef<Map<string, string | null>>(new Map());
 
     const pickModeRef = useRef<PickMode>(pickMode);
     useEffect(() => {
@@ -162,31 +179,53 @@ export const KakaoMap: React.FC<Props> = ({
 
                 const props = f.properties ?? {};
                 const rawType = props.type as string | undefined;
-                const obstacleTypeLabel = (rawType && OBSTACLE_TYPE_LABEL[rawType]) ?? "장애물";
+                const obstacleTypeLabel =
+                    (rawType && OBSTACLE_TYPE_LABEL[rawType]) ?? "장애물";
+
                 const createdAtRaw = props.createdAt ?? null;
                 const createdAtText = createdAtRaw
                     ? new Date(createdAtRaw).toLocaleString("ko-KR")
                     : "N/A";
 
-                kakao.maps.event.addListener(polygon, "click", (mouseEvent: any) => {
+                kakao.maps.event.addListener(polygon, "click", async (mouseEvent: any) => {
                     const iw = obstacleInfoRef.current;
                     if (!iw) return;
 
+                    const userId = props.userId as string | undefined;
+
                     iw.setContent(`
-                      <div style="padding:10px; font-size:12px; line-height:1.4;">
+                      <div style="padding:10px; font-size:12px; line-height:1.4; min-width:180px;">
                         <div style="font-weight:700; margin-bottom:6px;">${obstacleTypeLabel}</div>
                         <div><b>등록</b>: ${createdAtText}</div>
+                        <div style="margin-top:8px;">배지 불러오는 중...</div>
                       </div>
                     `);
                     iw.setPosition(mouseEvent.latLng);
                     iw.open(map);
-                });
 
+                    if (!userId) {
+                        iw.setContent(renderObstacleInfoHtml(obstacleTypeLabel, createdAtText, null));
+                        return;
+                    }
+
+                    const cache = badgeUrlCacheRef.current;
+                    if (cache.has(userId)) {
+                        iw.setContent(renderObstacleInfoHtml(obstacleTypeLabel, createdAtText, cache.get(userId) ?? null));
+                        return;
+                    }
+
+                    try {
+                        const badgeUrl = await getUserBadgeUrl(userId);
+                        cache.set(userId, badgeUrl);
+                        iw.setContent(renderObstacleInfoHtml(obstacleTypeLabel, createdAtText, badgeUrl));
+                    } catch {
+                        cache.set(userId, null);
+                        iw.setContent(renderObstacleInfoHtml(obstacleTypeLabel, createdAtText, null));
+                    }
+                });
                 polygon.setMap(map);
                 obstaclePolygonsRef.current.push(polygon);
             });
-
-
             lastFetchedBoundsRef.current = bbox;
         } catch (e) {
             console.error("[obstacles] fetch failed", e);

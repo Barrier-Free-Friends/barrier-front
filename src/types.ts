@@ -45,10 +45,16 @@ export type ObstacleArea = {
 
 export type ObstacleFeature = {
     type: "Feature";
-    id: string; // "obst_8"
+    id: string;
     geometry: {
         type: "Polygon";
-        coordinates: number[][][]; // [[[lng,lat],...]]
+        coordinates: number[][][];
+    };
+    properties?: {
+        obstacleId: number;
+        type: string;
+        createdAt: string | null;
+        userId: string | null;
     };
 };
 

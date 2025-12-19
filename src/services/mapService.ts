@@ -65,3 +65,14 @@ export async function getObstacles(params: {
     if (!res.ok) throw new Error("Failed to fetch obstacles");
     return res.json();
 }
+
+export async function getUserBadgeUrl(userId: string): Promise<string | null> {
+    if (!userId) return null;
+
+    const res = await fetch(`http://localhost:XXXX/badges?userId=${encodeURIComponent(userId)}`);
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    // 예: { imageUrl: "https://..." }
+    return data.imageUrl ?? null;
+}
