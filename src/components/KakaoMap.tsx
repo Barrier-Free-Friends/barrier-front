@@ -157,8 +157,9 @@ export const KakaoMap: React.FC<Props> = ({
         }
 
         try {
+            console.trace("시작");
             const fc = await getObstacles(bbox);
-
+            console.trace("종료");
             clearObstaclePolygons();
 
             fc.features?.forEach((f: any) => {

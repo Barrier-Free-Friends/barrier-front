@@ -1,6 +1,6 @@
 import axios from "axios";
 import type { RouteDetailResult, MobilityType, ObstacleArea, ObstacleFeatureCollection  } from "../types";
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://api.barrier-free-friends.xyz";
 
 export interface RouteDetailRequest {
     startLatitude: number;
@@ -26,7 +26,7 @@ export async function fetchRouteDetail(
     req: RouteDetailRequest
 ): Promise<ApiResponse<RouteDetailResult>> {
     try {
-        const { data } = await api.post<RouteDetailResult>("/routes/detail", req);
+        const { data } = await api.post<RouteDetailResult>("/v1/map/routes/detail", req);
 
         // 백엔드가 wrapper 없이 DTO만 주므로 프론트에서 wrapper로 감싼다
         return { isSuccess: true, result: data };
