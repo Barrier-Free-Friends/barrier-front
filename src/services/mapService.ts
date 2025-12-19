@@ -73,6 +73,7 @@ export async function getUserBadgeUrl(userId: string): Promise<string | null> {
     if (!res.ok) return null;
 
     const data = await res.json();
+    console.log("data", data);
     // 예: { imageUrl: "https://..." }
-    return data.imgUrl ?? null;
+    return data?.result?.imgUrl ?? null;
 }
