@@ -62,7 +62,7 @@ export async function getObstacles(params: {
         maxLat: String(params.maxLat),
     });
 
-    const res = await fetch( `${API_BASE_URL}/obstacles?${qs.toString()}` );
+    const res = await fetch( `${API_BASE_URL}/v1/map/obstacles?${qs.toString()}` );
     if (!res.ok) throw new Error("Failed to fetch obstacles");
     return res.json();
 }
@@ -70,10 +70,10 @@ export async function getObstacles(params: {
 export async function getUserBadgeUrl(userId: string): Promise<string | null> {
     if (!userId) return null;
 
-    const res = await fetch(`${API_POINTSERVICE_URL}/badges?userId=${encodeURIComponent(userId)}`);
+    const res = await fetch(`${API_POINTSERVICE_URL}/v1/point/badges/image/${encodeURIComponent(userId)}`);
     if (!res.ok) return null;
 
     const data = await res.json();
     // 예: { imageUrl: "https://..." }
-    return data.imageUrl ?? null;
+    return data.imgUrl ?? null;
 }
