@@ -1,6 +1,7 @@
 import axios from "axios";
 import type { RouteDetailResult, MobilityType, ObstacleArea, ObstacleFeatureCollection  } from "../types";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_POINTSERVICE_URL = import.meta.env.VITE_POINT_SERVICE_URL;
 
 export interface RouteDetailRequest {
     startLatitude: number;
@@ -69,7 +70,7 @@ export async function getObstacles(params: {
 export async function getUserBadgeUrl(userId: string): Promise<string | null> {
     if (!userId) return null;
 
-    const res = await fetch(`http://localhost:XXXX/badges?userId=${encodeURIComponent(userId)}`);
+    const res = await fetch(`${API_POINTSERVICE_URL}/badges?userId=${encodeURIComponent(userId)}`);
     if (!res.ok) return null;
 
     const data = await res.json();
